@@ -37,7 +37,7 @@ void setup() {
   Serial.print("IP address: ");
   Serial.println(WiFi.softAPIP());  // AP 的 IP 通常為 192.168.4.1
 
-  // 自訂初始網頁介面（修復字串拼接：分段建構 HTML 以插入動態變數）
+  // 自訂初始網頁介面（美化版：改善 CSS 樣式、佈局與可讀性）
   server.on("/", []() {
     // 獲取 IP 並格式化為字串
     IPAddress apIP = WiFi.softAPIP();
@@ -50,53 +50,171 @@ void setup() {
     // 分段建構 HTML：靜態部分用 raw string，動態部分用 +=
     String html = R"rawliteral(
 <!DOCTYPE html>
-<html>
+<html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BasicOTA Dashboard</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;700&display=swap" rel="stylesheet">
   <style>
-    body { font-family: Arial, sans-serif; text-align: center; margin: 50px; background-color: #f0f0f0; }
-    .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-    h1 { color: #333; }
-    .info { background: #e7f3ff; padding: 10px; margin: 10px 0; border-radius: 5px; }
-    .button { display: inline-block; padding: 10px 20px; margin: 10px; background: #4CAF50; color: white; text-decoration: none; border-radius: 5px; }
-    .button:hover { background: #45a049; }
-    .instructions { background: #fff3cd; padding: 15px; margin: 20px 0; border-radius: 5px; text-align: left; }
+    :root {
+      --primary-color: #2196F3; /* 藍色主調 */
+      --secondary-color: #4CAF50; /* 綠色強調 */
+      --background-color: #f5f7fa;
+      --card-background: #ffffff;
+      --text-color: #333333;
+      --text-light: #666666;
+      --border-color: #e0e0e0;
+      --shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+      --border-radius: 12px;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, var(--background-color) 0%, #e3f2fd 100%);
+      margin: 0;
+      padding: 20px;
+      color: var(--text-color);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container {
+      max-width: 700px;
+      margin: 0 auto;
+      background: var(--card-background);
+      padding: 30px;
+      border-radius: var(--border-radius);
+      box-shadow: var(--shadow);
+      text-align: center;
+    }
+    h1 {
+      color: var(--primary-color);
+      font-weight: 700;
+      margin-bottom: 10px;
+      font-size: 2.2em;
+    }
+    .subtitle {
+      color: var(--text-light);
+      font-size: 1.1em;
+      margin-bottom: 30px;
+    }
+    .info-card {
+      background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: var(--border-radius);
+      border-left: 5px solid var(--primary-color);
+    }
+    .info-card p {
+      margin: 8px 0;
+      font-size: 1.1em;
+      font-weight: 400;
+    }
+    .status-indicator {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      background: var(--secondary-color);
+      border-radius: 50%;
+      margin-right: 10px;
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0% { opacity: 1; }
+      50% { opacity: 0.5; }
+      100% { opacity: 1; }
+    }
+    .instructions {
+      background: #fff8e1;
+      padding: 25px;
+      margin: 25px 0;
+      border-radius: var(--border-radius);
+      text-align: left;
+      border-left: 5px solid #ff9800;
+    }
+    .instructions h3 {
+      color: #ff9800;
+      margin-top: 0;
+      font-size: 1.4em;
+    }
+    .instructions ol {
+      padding-left: 20px;
+      font-size: 1.05em;
+    }
+    .instructions li {
+      margin-bottom: 12px;
+      color: var(--text-color);
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 24px;
+      margin: 15px 10px;
+      background: var(--secondary-color);
+      color: white;
+      text-decoration: none;
+      border-radius: var(--border-radius);
+      font-weight: 500;
+      font-size: 1.1em;
+      transition: background 0.3s ease, transform 0.2s ease;
+      box-shadow: var(--shadow);
+    }
+    .button:hover {
+      background: #45a049;
+      transform: translateY(-2px);
+    }
+    .footer {
+      margin-top: 40px;
+      padding-top: 20px;
+      border-top: 1px solid var(--border-color);
+      color: var(--text-light);
+      font-size: 0.9em;
+    }
+    @media (max-width: 600px) {
+      .container { padding: 20px; }
+      h1 { font-size: 1.8em; }
+      .instructions { padding: 20px; }
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <h1>BasicOTA Demo - AP Mode</h1>
-    <div class="info">
-      <p><strong>Device IP:</strong> )rawliteral";
+    <p class="subtitle">歡迎使用無線 OTA 更新系統</p>
+    <div class="info-card">
+      <p><span class="status-indicator"></span><strong>裝置狀態：</strong>就緒</p>
+      <p><strong>裝置 IP：</strong> )rawliteral";
 
     html += ipStr;  // 插入 IP
     html += R"rawliteral(</p>
-      <p><strong>SSID:</strong> )rawliteral";
+      <p><strong>SSID：</strong> )rawliteral";
 
     html += ssidStr;  // 插入 SSID
     html += R"rawliteral(</p>
-      <p><strong>Status:</strong> Ready for OTA Updates</p>
-    </div>
-    <div class="instructions">
-      <h3>OTA 更新指示：</h3>
-      <ol>
-        <li>連線到此 AP (SSID: )rawliteral";
-
-    html += ssidStr;  // 插入 SSID
-    html += R"rawliteral(，密碼: )rawliteral";
+      <p><strong>連線密碼：</strong> )rawliteral";
 
     html += passwordStr;  // 插入密碼
-    html += R"rawliteral() )</li>
-        <li>在 Arduino IDE 中，選擇工具 > 連接埠 > )rawliteral";
+    html += R"rawliteral(</p>
+    </div>
+    <div class="instructions">
+      <h3>OTA 更新步驟</h3>
+      <ol>
+        <li>連線到此 AP (SSID: <strong>)rawliteral";
+
+    html += ssidStr;  // 插入 SSID
+    html += R"rawliteral(</strong>，密碼: <strong>)rawliteral";
+
+    html += passwordStr;  // 插入密碼
+    html += R"rawliteral(</strong>)</li>
+        <li>在 Arduino IDE 中，選擇工具 > 連接埠 > <strong>)rawliteral";
 
     html += ipStr;  // 插入 IP
-    html += R"rawliteral( (網路連接埠)</li>
+    html += R"rawliteral(</strong> (網路連接埠)</li>
         <li>上傳程式碼以進行 OTA 更新 (預設埠: 3232)</li>
       </ol>
     </div>
-    <p>使用 Arduino IDE 連線到此 IP 進行無線更新！</p>
+    <a href="https://docs.espressif.com/projects/arduino-esp32/en/latest/tutorials/ota_updates.html" target="_blank" class="button">查看 OTA 文件</a>
+    <div class="footer">
+      <p>© 2024 Espressif Systems | 安全更新，輕鬆管理</p>
+    </div>
   </div>
 </body>
 </html>
