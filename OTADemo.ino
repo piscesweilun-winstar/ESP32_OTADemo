@@ -17,16 +17,34 @@
 #include <ESPmDNS.h>
 #include <NetworkUdp.h>
 #include <ArduinoOTA.h>
+#include <LittleFS.h>  // 用於 LittleFS 檔案系統支援
 
 const char *ssid = "BasicOTA_AP";      // AP 的 SSID，請修改為您想要的名稱
 const char *password = "12345678";     // AP 的密碼，請修改為您想要的密碼（至少 8 個字元）
 uint32_t last_ota_time = 0;
+bool littlefsUpdateInProgress = false;  // 標記 LittleFS OTA 更新
 
 WebServer server(80);  // HTTP 伺服器，用於自訂網頁
+
+void initLittleFS() {
+  // 初始化 LittleFS
+  if (!LittleFS.begin(true)) {
+    Serial.println("LittleFS Mount Failed");
+  } else {
+    Serial.println("LittleFS Mounted Successfully");
+    // 顯示 LittleFS 的使用情況
+    size_t totalBytes = LittleFS.totalBytes();
+    size_t usedBytes = LittleFS.usedBytes();
+    Serial.printf("LittleFS: Total: %d bytes, Used: %d bytes, Free: %d bytes\n", totalBytes, usedBytes, totalBytes - usedBytes);
+  }
+}
 
 void setup() {
   Serial.begin(115200);
   Serial.println("Booting");
+  
+  // 初始化 LittleFS
+  initLittleFS();
   
   // 改為 AP 模式
   WiFi.mode(WIFI_AP);
@@ -248,15 +266,23 @@ void setup() {
       String type;
       if (ArduinoOTA.getCommand() == U_FLASH) {
         type = "sketch";
-      } else {  // U_SPIFFS
+      } else {
         type = "filesystem";
+        littlefsUpdateInProgress = true;
+        LittleFS.end();  // 卸載 LittleFS 以進行更新
       }
 
-      // NOTE: if updating SPIFFS this would be the place to unmount SPIFFS using SPIFFS.end()
       Serial.println("Start updating " + type);
     })
     .onEnd([]() {
       Serial.println("\nEnd");
+      if (littlefsUpdateInProgress) {
+        littlefsUpdateInProgress = false;
+        // 重新掛載 LittleFS
+        delay(100);
+        initLittleFS();
+        Serial.println("LittleFS remounted after OTA update");
+      }
     })
     .onProgress([](unsigned int progress, unsigned int total) {
       if (millis() - last_ota_time > 500) {
